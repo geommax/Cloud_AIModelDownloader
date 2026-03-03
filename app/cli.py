@@ -20,6 +20,21 @@ from huggingface_hub.utils import HfHubHTTPError
 DOWNLOAD_DIR = os.environ.get("HF_DOWNLOAD_DIR", "/models")
 
 
+def ensure_writable_dir(path: str) -> None:
+    """Ensure directory exists and is writable"""
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError as exc:
+        print(f"Cannot create directory: {path}")
+        print(f"Error: {exc}")
+        sys.exit(1)
+
+    if not os.access(path, os.W_OK):
+        print(f"Directory is not writable: {path}")
+        print("Fix permissions on the host directory (e.g. chown to uid 1000).")
+        sys.exit(1)
+
+
 def authenticate(token: str | None = None) -> HfApi:
     """Authenticate with Hugging Face token"""
     tok = token or os.environ.get("HF_TOKEN")
@@ -36,15 +51,18 @@ def cmd_download(args):
     api = authenticate(args.token)
     repo_id = args.repo
 
+    local_dir = os.path.join(DOWNLOAD_DIR, repo_id.replace("/", "_"))
+    ensure_writable_dir(local_dir)
+
     print(f"Downloading: {repo_id}")
-    print(f"Save to:     {DOWNLOAD_DIR}/{repo_id}")
+    print(f"Save to:     {local_dir}")
 
     try:
         path = snapshot_download(
             repo_id=repo_id,
             repo_type=args.type,
             revision=args.revision,
-            local_dir=os.path.join(DOWNLOAD_DIR, repo_id.replace("/", "_")),
+            local_dir=local_dir,
             token=api.token,
             allow_patterns=args.include,
             ignore_patterns=args.exclude,
@@ -59,6 +77,9 @@ def cmd_download_file(args):
     """Download a single file from a model repo"""
     api = authenticate(args.token)
 
+    local_dir = os.path.join(DOWNLOAD_DIR, args.repo.replace("/", "_"))
+    ensure_writable_dir(local_dir)
+
     print(f"Downloading file: {args.filename} from {args.repo}")
 
     try:
@@ -67,7 +88,7 @@ def cmd_download_file(args):
             filename=args.filename,
             repo_type=args.type,
             revision=args.revision,
-            local_dir=os.path.join(DOWNLOAD_DIR, args.repo.replace("/", "_")),
+            local_dir=local_dir,
             token=api.token,
         )
         print(f"File downloaded: {path}")
