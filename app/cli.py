@@ -21,23 +21,23 @@ DOWNLOAD_DIR = os.environ.get("HF_DOWNLOAD_DIR", "/models")
 
 
 def authenticate(token: str | None = None) -> HfApi:
-    """Hugging Face token ဖြင့် authenticate လုပ်ပါ"""
+    """Authenticate with Hugging Face token"""
     tok = token or os.environ.get("HF_TOKEN")
     if not tok:
-        print("❌  HF_TOKEN environment variable သတ်မှတ်ထားရန် လိုအပ်ပါသည်။")
-        print("   docker-compose.yml ထဲတွင် HF_TOKEN ကို .env file မှတဆင့် သတ်မှတ်ပါ။")
+        print("HF_TOKEN environment variable is required.")
+        print("Set HF_TOKEN via the .env file in docker-compose.yml.")
         sys.exit(1)
     login(token=tok, add_to_git_credential=False)
     return HfApi(token=tok)
 
 
 def cmd_download(args):
-    """Model တစ်ခုလုံးကို download ဆွဲပါ"""
+    """Download a full model repository"""
     api = authenticate(args.token)
     repo_id = args.repo
 
-    print(f"📦  Downloading: {repo_id}")
-    print(f"📂  Save to:     {DOWNLOAD_DIR}/{repo_id}")
+    print(f"Downloading: {repo_id}")
+    print(f"Save to:     {DOWNLOAD_DIR}/{repo_id}")
 
     try:
         path = snapshot_download(
@@ -49,17 +49,17 @@ def cmd_download(args):
             allow_patterns=args.include,
             ignore_patterns=args.exclude,
         )
-        print(f"✅  Download complete: {path}")
+        print(f"Download complete: {path}")
     except HfHubHTTPError as e:
-        print(f"❌  Download failed: {e}")
+        print(f"Download failed: {e}")
         sys.exit(1)
 
 
 def cmd_download_file(args):
-    """Model repo ထဲက file တစ်ခုတည်းကို download ဆွဲပါ"""
+    """Download a single file from a model repo"""
     api = authenticate(args.token)
 
-    print(f"📦  Downloading file: {args.filename} from {args.repo}")
+    print(f"Downloading file: {args.filename} from {args.repo}")
 
     try:
         path = hf_hub_download(
@@ -70,17 +70,17 @@ def cmd_download_file(args):
             local_dir=os.path.join(DOWNLOAD_DIR, args.repo.replace("/", "_")),
             token=api.token,
         )
-        print(f"✅  File downloaded: {path}")
+        print(f"File downloaded: {path}")
     except HfHubHTTPError as e:
-        print(f"❌  Download failed: {e}")
+        print(f"Download failed: {e}")
         sys.exit(1)
 
 
 def cmd_search(args):
-    """Hugging Face Hub မှာ model ရှာပါ"""
+    """Search models on Hugging Face Hub"""
     api = authenticate(args.token)
 
-    print(f"🔍  Searching: {args.query}")
+    print(f"Searching: {args.query}")
     print("-" * 60)
 
     models = list(api.list_models(
@@ -91,24 +91,24 @@ def cmd_search(args):
     ))
 
     if not models:
-        print("   ရလဒ်မရှိပါ။")
+        print("   No results found.")
         return
 
     for i, model in enumerate(models, 1):
         downloads = getattr(model, "downloads", "N/A")
         likes = getattr(model, "likes", "N/A")
         print(f"  {i:>3}. {model.id}")
-        print(f"       ⬇ {downloads:,} downloads  |  ❤ {likes} likes")
+        print(f"       {downloads:,} downloads  |  {likes} likes")
 
     print("-" * 60)
-    print(f"  စုစုပေါင်း {len(models)} ခု တွေ့ရှိပါသည်။")
+    print(f"  Total results: {len(models)}")
 
 
 def cmd_info(args):
-    """Model repo ၏ အချက်အလက်များကို ကြည့်ပါ"""
+    """Show model repository information"""
     api = authenticate(args.token)
 
-    print(f"ℹ️   Model info: {args.repo}")
+    print(f"Model info: {args.repo}")
     print("-" * 60)
 
     try:
@@ -124,7 +124,7 @@ def cmd_info(args):
 
         # List files
         siblings = info.siblings or []
-        print(f"\n  📁 Files ({len(siblings)}):")
+        print(f"\n  Files ({len(siblings)}):")
         total_size = 0
         for f in siblings:
             size = f.size or 0
@@ -135,35 +135,35 @@ def cmd_info(args):
         print(f"      {_format_size(total_size):>10}  Total")
 
     except HfHubHTTPError as e:
-        print(f"❌  Error: {e}")
+        print(f"Error: {e}")
         sys.exit(1)
 
 
 def cmd_list_downloaded(_args):
-    """Download ဆွဲပြီးသား model များကို ပြပါ"""
-    print(f"📂  Downloaded models in {DOWNLOAD_DIR}:")
+    """List downloaded models"""
+    print(f"Downloaded models in {DOWNLOAD_DIR}:")
     print("-" * 60)
 
     if not os.path.exists(DOWNLOAD_DIR):
-        print("   Download directory မရှိသေးပါ။")
+        print("   Download directory does not exist yet.")
         return
 
     entries = sorted(os.listdir(DOWNLOAD_DIR))
     if not entries:
-        print("   Download ဆွဲထားသော model မရှိသေးပါ။")
+        print("   No downloaded models yet.")
         return
 
     for entry in entries:
         full_path = os.path.join(DOWNLOAD_DIR, entry)
         if os.path.isdir(full_path):
             size = _dir_size(full_path)
-            print(f"  📁 {entry}  ({_format_size(size)})")
+            print(f"  {entry}  ({_format_size(size)})")
 
     print("-" * 60)
 
 
 def _format_size(size_bytes: int) -> str:
-    """Bytes ကို human-readable format သို့ ပြောင်းပါ"""
+    """Convert bytes to human-readable format"""
     if size_bytes == 0:
         return "0 B"
     units = ["B", "KB", "MB", "GB", "TB"]
@@ -176,7 +176,7 @@ def _format_size(size_bytes: int) -> str:
 
 
 def _dir_size(path: str) -> int:
-    """Directory ၏ total size ကို bytes ဖြင့် return ပြန်ပါ"""
+    """Return total directory size in bytes"""
     total = 0
     for dirpath, _dirnames, filenames in os.walk(path):
         for f in filenames:
@@ -189,7 +189,7 @@ def _dir_size(path: str) -> int:
 def main():
     parser = argparse.ArgumentParser(
         prog="hfdl",
-        description="🤗 Hugging Face Model Downloader CLI",
+        description="Hugging Face Model Downloader CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
@@ -212,7 +212,7 @@ Examples:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # --- download ---
-    p_dl = subparsers.add_parser("download", aliases=["dl"], help="Model repo download ဆွဲပါ")
+    p_dl = subparsers.add_parser("download", aliases=["dl"], help="Download a model repo")
     p_dl.add_argument("repo", help="Repo ID (e.g. meta-llama/Llama-2-7b-hf)")
     p_dl.add_argument("--type", choices=["model", "dataset", "space"], default="model", help="Repo type")
     p_dl.add_argument("--revision", default=None, help="Branch / tag / commit")
@@ -221,7 +221,7 @@ Examples:
     p_dl.set_defaults(func=cmd_download)
 
     # --- download-file ---
-    p_dlf = subparsers.add_parser("download-file", aliases=["dlf"], help="File တစ်ခုတည်းကို download ဆွဲပါ")
+    p_dlf = subparsers.add_parser("download-file", aliases=["dlf"], help="Download a single file")
     p_dlf.add_argument("repo", help="Repo ID")
     p_dlf.add_argument("filename", help="File name to download")
     p_dlf.add_argument("--type", choices=["model", "dataset", "space"], default="model")
@@ -229,18 +229,18 @@ Examples:
     p_dlf.set_defaults(func=cmd_download_file)
 
     # --- search ---
-    p_search = subparsers.add_parser("search", aliases=["s"], help="Model ရှာပါ")
+    p_search = subparsers.add_parser("search", aliases=["s"], help="Search models")
     p_search.add_argument("query", help="Search query")
     p_search.add_argument("--limit", "-n", type=int, default=10, help="Max results")
     p_search.set_defaults(func=cmd_search)
 
     # --- info ---
-    p_info = subparsers.add_parser("info", aliases=["i"], help="Model info ကြည့်ပါ")
+    p_info = subparsers.add_parser("info", aliases=["i"], help="Show model info")
     p_info.add_argument("repo", help="Repo ID")
     p_info.set_defaults(func=cmd_info)
 
     # --- list ---
-    p_list = subparsers.add_parser("list", aliases=["ls"], help="Download ဆွဲပြီးသား model များကို ပြပါ")
+    p_list = subparsers.add_parser("list", aliases=["ls"], help="List downloaded models")
     p_list.set_defaults(func=cmd_list_downloaded)
 
     args = parser.parse_args()
