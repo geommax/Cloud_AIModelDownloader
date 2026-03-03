@@ -28,7 +28,7 @@ RUN mkdir -p /models /tmp/hf_cache
 VOLUME /models
 
 ENV HF_DOWNLOAD_DIR=/models
-ENV HF_HOME=/tmp/hf_cache
+ENV HF_HOME=/models
 
 # Entrypoint
 COPY entrypoint.sh /opt/hfdl/entrypoint.sh

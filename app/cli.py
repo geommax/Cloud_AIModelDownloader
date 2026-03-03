@@ -35,6 +35,11 @@ def ensure_writable_dir(path: str) -> None:
         sys.exit(1)
 
 
+def ensure_cache_dir(path: str) -> None:
+    """Ensure cache directory exists and is writable"""
+    ensure_writable_dir(path)
+
+
 def authenticate(token: str | None = None) -> HfApi:
     """Authenticate with Hugging Face token"""
     tok = token or os.environ.get("HF_TOKEN")
@@ -51,21 +56,21 @@ def cmd_download(args):
     api = authenticate(args.token)
     repo_id = args.repo
 
-    local_dir = os.path.join(DOWNLOAD_DIR, repo_id.replace("/", "_"))
-    ensure_writable_dir(local_dir)
+    ensure_cache_dir(DOWNLOAD_DIR)
 
     print(f"Downloading: {repo_id}")
-    print(f"Save to:     {local_dir}")
+    print(f"Cache dir:   {DOWNLOAD_DIR}")
 
     try:
         path = snapshot_download(
             repo_id=repo_id,
             repo_type=args.type,
             revision=args.revision,
-            local_dir=local_dir,
+            cache_dir=DOWNLOAD_DIR,
             token=api.token,
             allow_patterns=args.include,
             ignore_patterns=args.exclude,
+            max_workers=args.max_workers,
         )
         print(f"Download complete: {path}")
     except HfHubHTTPError as e:
@@ -77,8 +82,7 @@ def cmd_download_file(args):
     """Download a single file from a model repo"""
     api = authenticate(args.token)
 
-    local_dir = os.path.join(DOWNLOAD_DIR, args.repo.replace("/", "_"))
-    ensure_writable_dir(local_dir)
+    ensure_cache_dir(DOWNLOAD_DIR)
 
     print(f"Downloading file: {args.filename} from {args.repo}")
 
@@ -88,7 +92,7 @@ def cmd_download_file(args):
             filename=args.filename,
             repo_type=args.type,
             revision=args.revision,
-            local_dir=local_dir,
+            cache_dir=DOWNLOAD_DIR,
             token=api.token,
         )
         print(f"File downloaded: {path}")
@@ -239,6 +243,7 @@ Examples:
     p_dl.add_argument("--revision", default=None, help="Branch / tag / commit")
     p_dl.add_argument("--include", nargs="*", default=None, help="Include patterns (e.g. *.safetensors)")
     p_dl.add_argument("--exclude", nargs="*", default=None, help="Exclude patterns (e.g. *.bin)")
+    p_dl.add_argument("--max-workers", type=int, default=1, help="Download threads (lower to reduce RAM)")
     p_dl.set_defaults(func=cmd_download)
 
     # --- download-file ---

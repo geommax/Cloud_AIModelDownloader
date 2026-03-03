@@ -16,3 +16,9 @@ sudo chown -R 1000:1000 models
 
 RUN ONE SHOT 
 docker compose run --rm hfdl download openai-community/gpt2
+
+# Reduce RAM usage (avoid OOM kill)
+docker compose run --rm hfdl download openai-community/gpt2 --max-workers 1
+
+# Note: downloads are stored in the Hugging Face cache structure
+# under the mounted ./models directory (blobs/refs/snapshots).
