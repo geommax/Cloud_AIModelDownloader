@@ -3,7 +3,10 @@
 
 RUN scripts/install_docker_debian11.sh
 
-Add HF TOken in .env file
+# Setup swap (prevents OOM kill on low-RAM cloud instances)
+sudo bash scripts/setup_swap.sh 8G
+
+Add HF Token in .env file
 
 
 RUN docker compose build
@@ -14,11 +17,11 @@ mkdir -p models
 sudo chown -R 1000:1000 models
 
 
-RUN ONE SHOT 
+RUN ONE SHOT
 docker compose run --rm hfdl download openai-community/gpt2
 
-# Reduce RAM usage (avoid OOM kill)
-sudo docker compose run --rm hfdl download openai-community/gpt2 --max-workers 1
+# Skip failed files and continue
+docker compose run --rm hfdl download openai-community/gpt2 --skip-errors
 
 # Note: downloads are stored in the Hugging Face cache structure
 # under the mounted ./models directory (blobs/refs/snapshots).

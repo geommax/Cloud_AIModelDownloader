@@ -7,12 +7,11 @@ Hugging Face မှ AI Model များကို download ဆွဲပြီ�
 import os
 import sys
 import argparse
+import fnmatch
 from huggingface_hub import (
     HfApi,
-    snapshot_download,
     hf_hub_download,
     login,
-    list_models,
 )
 from huggingface_hub.utils import HfHubHTTPError
 
@@ -40,6 +39,34 @@ def ensure_cache_dir(path: str) -> None:
     ensure_writable_dir(path)
 
 
+def _filter_files(siblings, include_patterns, exclude_patterns):
+    """Filter file list by include/exclude glob patterns"""
+    filenames = [f.rfilename for f in siblings]
+
+    if include_patterns:
+        filtered = []
+        for f in filenames:
+            for pat in include_patterns:
+                if fnmatch.fnmatch(f, pat) or fnmatch.fnmatch(os.path.basename(f), pat):
+                    filtered.append(f)
+                    break
+        filenames = filtered
+
+    if exclude_patterns:
+        filtered = []
+        for f in filenames:
+            excluded = False
+            for pat in exclude_patterns:
+                if fnmatch.fnmatch(f, pat) or fnmatch.fnmatch(os.path.basename(f), pat):
+                    excluded = True
+                    break
+            if not excluded:
+                filtered.append(f)
+        filenames = filtered
+
+    return filenames
+
+
 def authenticate(token: str | None = None) -> HfApi:
     """Authenticate with Hugging Face token"""
     tok = token or os.environ.get("HF_TOKEN")
@@ -62,17 +89,37 @@ def cmd_download(args):
     print(f"Cache dir:   {DOWNLOAD_DIR}")
 
     try:
-        path = snapshot_download(
-            repo_id=repo_id,
-            repo_type=args.type,
-            revision=args.revision,
-            cache_dir=DOWNLOAD_DIR,
-            token=api.token,
-            allow_patterns=args.include,
-            ignore_patterns=args.exclude,
-            max_workers=args.max_workers,
-        )
-        print(f"Download complete: {path}")
+        # Get file list first
+        repo_info = api.model_info(repo_id, revision=args.revision)
+        siblings = repo_info.siblings or []
+
+        # Apply include/exclude filters
+        files = _filter_files(siblings, args.include, args.exclude)
+
+        print(f"Files to download: {len(files)}")
+        print("-" * 60)
+
+        # Download one file at a time to minimize memory usage
+        for i, filename in enumerate(files, 1):
+            print(f"  [{i}/{len(files)}] {filename}")
+            try:
+                hf_hub_download(
+                    repo_id=repo_id,
+                    filename=filename,
+                    repo_type=args.type,
+                    revision=args.revision,
+                    cache_dir=DOWNLOAD_DIR,
+                    token=api.token,
+                )
+            except Exception as e:
+                print(f"    FAILED: {e}")
+                if not args.skip_errors:
+                    sys.exit(1)
+                continue
+
+        print("-" * 60)
+        print(f"Download complete: {repo_id}")
+
     except HfHubHTTPError as e:
         print(f"Download failed: {e}")
         sys.exit(1)
@@ -243,7 +290,7 @@ Examples:
     p_dl.add_argument("--revision", default=None, help="Branch / tag / commit")
     p_dl.add_argument("--include", nargs="*", default=None, help="Include patterns (e.g. *.safetensors)")
     p_dl.add_argument("--exclude", nargs="*", default=None, help="Exclude patterns (e.g. *.bin)")
-    p_dl.add_argument("--max-workers", type=int, default=1, help="Download threads (lower to reduce RAM)")
+    p_dl.add_argument("--skip-errors", action="store_true", help="Skip failed files and continue")
     p_dl.set_defaults(func=cmd_download)
 
     # --- download-file ---
