@@ -1,0 +1,11 @@
+services:
+  hfdl:
+    build: .
+    image: hf-model-downloader
+    container_name: hf-downloader
+    env_file:
+      - .env
+    volumes:
+      - ./models:/models
+    stdin_open: true    # docker run -i
+    tty: true           # docker run -t

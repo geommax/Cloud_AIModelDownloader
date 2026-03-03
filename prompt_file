@@ -1,0 +1,11 @@
+Cotainer တစ်လုံးဖန်တီးပါမယ်။ 
+
+Hugging Face က AI Model မျိုးစုံကို repo name ထည့်ပြီးတော့ ဒေါင်းမှာပါ။ 
+
+Contaienr ထဲ စဝင်လိုက်တာနဲ့ python env ထဲကိုရောက်မှာဖြစ်ပြီးအာ့မှာ cli app တစ်ခုရှိပါမယ်။
+
+CLI APP သည် HF TOKEN ကိုအသုံးပြု၍ Hugging Face မှာရှိတဲ့ model ကိုဒေါင်းလုပ်လုပ်ပြီးတော့ local machine မှာသိမ်းဆည်းပေးပါမယ်။
+
+Container သည် model download ဆွဲမယ် ရှာမယ် စတဲ့အလုပ်ပဲလုပ်ပါမယ်။ တခြား ဘာမှမလုပ်ပါ။ 
+
+ဒေါင်းလုပ်လုပ်ပြီးတော့ local machine မှာသိမ်းဆည်းပေးဖို့အတွက် dir mount လုပ်ပါမယ်။
