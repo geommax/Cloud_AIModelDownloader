@@ -24,11 +24,12 @@ RUN printf '#!/bin/bash\npython /opt/hfdl/cli.py "$@"\n' > /usr/local/bin/hfdl &
     chmod +x /usr/local/bin/hfdl
 
 # Create models directory (mount point)
-RUN mkdir -p /models /tmp/hf_cache
+RUN mkdir -p /models /home/hfdl/.cache/huggingface
 VOLUME /models
 
 ENV HF_DOWNLOAD_DIR=/models
-ENV HF_HOME=/models
+ENV HF_HOME=/home/hfdl/.cache/huggingface
+ENV HF_HUB_CACHE=/models
 
 # Entrypoint
 COPY entrypoint.sh /opt/hfdl/entrypoint.sh
@@ -36,8 +37,8 @@ RUN chmod +x /opt/hfdl/entrypoint.sh
 
 # Create non-root user (uid 1000) and set permissions
 RUN groupadd -g 1000 hfdl && \
-    useradd -u 1000 -g 1000 -m hfdl && \
-    chown -R 1000:1000 /models /opt/hfdl /tmp/hf_cache
+    useradd -u 1000 -g 1000 -d /home/hfdl -m hfdl && \
+    chown -R 1000:1000 /models /opt/hfdl /home/hfdl
 
 WORKDIR /models
 USER 1000:1000
